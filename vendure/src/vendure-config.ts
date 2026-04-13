@@ -1,102 +1,141 @@
-import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import {
-    DefaultSchedulerPlugin,
-    DefaultSearchPlugin,
-    dummyPaymentHandler,
-    VendureConfig
-} from '@vendure/core';
-import { DashboardPlugin } from '@vendure/dashboard/plugin';
-import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
-import { GraphiqlPlugin } from '@vendure/graphiql-plugin';
-import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq';
-import 'dotenv/config';
-import path from 'path';
+  dummyPaymentHandler,
+  DefaultJobQueuePlugin,
+  DefaultSearchPlugin,
+  VendureConfig,
+} from '@vendure/core'
+import { defaultEmailHandlers, EmailPlugin } from '@vendure/email-plugin'
+import { AssetServerPlugin } from '@vendure/asset-server-plugin'
+import { AdminUiPlugin } from '@vendure/admin-ui-plugin'
+import { BullMQJobQueuePlugin } from '@vendure/job-queue-plugin/package/bullmq'
+import path from 'path'
 
-const IS_LOCAL = process.env.APP_ENV === 'local';
-const serverPort = +process.env.PORT || 3000;
+const IS_DEV = process.env.APP_ENV === 'local'
+
+// ─── Payment Handler: Cash on Delivery ────────────────────────────────────────
+// بيتعامل مع الدفع عند الاستلام بدون أي integration خارجي
+const cashOnDeliveryHandler = {
+  ...dummyPaymentHandler,
+  code: 'cash-on-delivery',
+  description: [{ languageCode: 'ar' as any, value: 'الدفع عند الاستلام' }],
+}
 
 export const config: VendureConfig = {
-    apiOptions: {
-        port: serverPort,
-        adminApiPath: 'admin-api',
-        shopApiPath: 'shop-api',
-        trustProxy: IS_LOCAL ? false : 1,
-        // The following options are useful in development mode,
-        // but are best turned off for production for security
-        // reasons.
-        ...(IS_LOCAL ? {
-            adminApiDebug: true,
-            shopApiDebug: true,
-        } : {}),
+  // ─── API Options ─────────────────────────────────────────────────────────────
+  apiOptions: {
+    port: +(process.env.PORT || 3000),
+    adminApiPath: 'admin-api',
+    shopApiPath: 'shop-api',
+
+    // CORS — مهم جداً للواجهة الأمامية على subdomain مختلف
+    cors: {
+      origin: [
+        // لوحة التحكم والـ API
+        `https://${process.env.VENDURE_HOST}`,
+        `http://${process.env.VENDURE_HOST}`,
+        // الواجهة الأمامية
+        'https://pandastore.bramjlive.com',
+        'http://pandastore.bramjlive.com',
+        // للتطوير المحلي
+        'http://localhost:3000',
+        'http://localhost:3001',
+      ],
+      credentials: true,
+      // مهم جداً — يسمح للواجهة تقرأ الـ auth token
+      exposedHeaders: ['vendure-auth-token'],
     },
-    authOptions: {
-        tokenMethod: ['bearer', 'cookie'],
-        superadminCredentials: {
-            identifier: process.env.SUPERADMIN_USERNAME,
-            password: process.env.SUPERADMIN_PASSWORD,
-        },
-        cookieOptions: {
-          secret: process.env.COOKIE_SECRET,
-        },
+  },
+
+  // ─── Auth Options ─────────────────────────────────────────────────────────────
+  authOptions: {
+    // bearer + cookie معاً — يحل مشكلة cross-domain session
+    tokenMethod: ['bearer', 'cookie'],
+
+    cookieOptions: {
+      secret: process.env.COOKIE_SECRET || 'change-me-in-production',
+      // none + secure مطلوبين للـ cross-domain cookies
+      sameSite: 'none',
+      secure: true,
+      httpOnly: true,
     },
-    dbConnectionOptions: {
-        type: 'postgres',
-        // See the README.md "Migrations" section for an explanation of
-        // the `synchronize` and `migrations` options.
-        synchronize: true,
-        migrations: [path.join(__dirname, './migrations/*.+(js|ts)')],
-        logging: false,
-        database: process.env.DB_NAME,
-        schema: process.env.DB_SCHEMA,
-        host: process.env.DB_HOST,
-        port: +process.env.DB_PORT,
-        username: process.env.DB_USERNAME,
-        password: process.env.DB_PASSWORD,
+
+    superadminCredentials: {
+      identifier: process.env.SUPERADMIN_USERNAME || 'superadmin',
+      password: process.env.SUPERADMIN_PASSWORD || 'superadmin',
     },
-    paymentOptions: {
-        paymentMethodHandlers: [dummyPaymentHandler],
-    },
-    // When adding or altering custom field definitions, the database will
-    // need to be updated. See the "Migrations" section in README.md.
-    customFields: {},
-    plugins: [
-        BullMQJobQueuePlugin.init({
-            connection: {
-              port: 6379,
-              host: process.env.REDIS_HOST,
-              password: process.env.REDIS_PASSWORD,
-              maxRetriesPerRequest: null
-            },
-          }),
-        GraphiqlPlugin.init(),
-        AssetServerPlugin.init({
-            route: 'assets',
-            assetUploadDir: IS_LOCAL ? path.join(__dirname, '../static/assets') : '/usr/src/app/assets',
-            // For local dev, the correct value for assetUrlPrefix should
-            // be guessed correctly, but for production it will usually need
-            // to be set manually to match your production url.
-            assetUrlPrefix: `https://${process.env.VENDURE_HOST}/assets/`,
-        }),
-        DefaultSchedulerPlugin.init(),
-        DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
-        EmailPlugin.init({
-            devMode: true,
-            outputPath: path.join(__dirname, '../static/email/test-emails'),
-            route: 'mailbox',
-            handlers: defaultEmailHandlers,
-            templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
-            globalTemplateVars: {
-                // The following variables will change depending on your storefront implehmentation.
-                // Here we are assuming a storefront running at http://localhost:8080.
-                fromAddress: '"example" <noreply@example.com>',
-                verifyEmailAddressUrl: 'http://localhost:8080/verify',
-                passwordResetUrl: 'http://localhost:8080/password-reset',
-                changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change'
-            },
-        }),
-        DashboardPlugin.init({
-            route: 'dashboard',
-            appDir: path.join(__dirname, '../dist/dashboard'),
-        }),
+
+    // السماح بـ guest checkout بدون تسجيل
+    requireVerification: false,
+  },
+
+  // ─── Database ─────────────────────────────────────────────────────────────────
+  dbConnectionOptions: {
+    type: 'postgres',
+    synchronize: false,
+    logging: IS_DEV,
+    database: process.env.DB_NAME || 'vendure',
+    schema: process.env.DB_SCHEMA || 'public',
+    host: process.env.DB_HOST,
+    port: +(process.env.DB_PORT || 5432),
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    migrations: [path.join(__dirname, '../migrations/*.js')],
+  },
+
+  // ─── Payment Methods ──────────────────────────────────────────────────────────
+  paymentOptions: {
+    paymentMethodHandlers: [
+      dummyPaymentHandler,  // للاختبار
     ],
-};
+  },
+
+  // ─── Plugins ──────────────────────────────────────────────────────────────────
+  plugins: [
+    // Assets — الصور والملفات
+    AssetServerPlugin.init({
+      route: 'assets',
+      assetUploadDir: process.env.ASSET_UPLOAD_DIR || path.join(__dirname, '../assets'),
+    }),
+
+    // Job Queue بـ BullMQ + Redis
+    BullMQJobQueuePlugin.init({
+      connection: {
+        host: process.env.REDIS_HOST,
+        port: 6379,
+        password: process.env.REDIS_PASSWORD,
+      },
+    }),
+
+    // البحث في المنتجات
+    DefaultSearchPlugin.init({
+      indexStockStatus: true,
+      bufferUpdates: false,
+    }),
+
+    // الإيميلات
+    EmailPlugin.init({
+      devMode: IS_DEV,
+      outputPath: path.join(__dirname, '../static/email/test-emails'),
+      route: 'mailbox',
+      handlers: defaultEmailHandlers,
+      templatePath: path.join(__dirname, '../static/email/templates'),
+      globalTemplateVars: {
+        fromAddress: '"سوق إدكو" <noreply@souqedku.com>',
+        verifyEmailAddressUrl: `https://${process.env.VENDURE_HOST}/verify`,
+        passwordResetUrl: `https://${process.env.VENDURE_HOST}/password-reset`,
+        changeEmailAddressUrl: `https://${process.env.VENDURE_HOST}/verify-email-address-change`,
+      },
+    }),
+
+    // لوحة التحكم
+    AdminUiPlugin.init({
+      route: 'dashboard',
+      port: 3002,
+      adminUiConfig: {
+        // مهم — يتوافق مع tokenMethod فوق
+        tokenMethod: 'bearer',
+        authTokenHeaderKey: 'vendure-auth-token',
+      },
+    }),
+  ],
+}
