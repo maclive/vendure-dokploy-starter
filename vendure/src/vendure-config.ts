@@ -37,6 +37,11 @@ export const config: VendureConfig = {
         },
         cookieOptions: {
           secret: process.env.COOKIE_SECRET,
+            // 👇 أهم حاجة
+        domain: '.bramjlive.com',
+        httpOnly: true,
+        secure: true,        // لازم عشان https
+        sameSite: 'none',    // مهم بين subdomains
         },
     },
     dbConnectionOptions: {
