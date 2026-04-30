@@ -16,19 +16,23 @@ const IS_LOCAL = process.env.APP_ENV === 'local';
 const serverPort = +process.env.PORT || 3000;
 
 export const config: VendureConfig = {
-    apiOptions: {
-        port: serverPort,
-        adminApiPath: 'admin-api',
-        shopApiPath: 'shop-api',
-        trustProxy: IS_LOCAL ? false : 1,
-        // The following options are useful in development mode,
-        // but are best turned off for production for security
-        // reasons.
-        ...(IS_LOCAL ? {
-            adminApiDebug: true,
-            shopApiDebug: true,
-        } : {}),
-    },
+   apiOptions: {
+  port: serverPort,
+  adminApiPath: 'admin-api',
+  shopApiPath: 'shop-api',
+  trustProxy: IS_LOCAL ? false : 1,
+  cors: {
+    origin: [
+      'https://remix.bramjlive.com',
+      'http://localhost:3000',   // للتطوير المحلي
+    ],
+    credentials: true,
+  },
+  ...(IS_LOCAL ? {
+    adminApiDebug: true,
+    shopApiDebug: true,
+  } : {}),
+},
     authOptions: {
         tokenMethod: ['bearer', 'cookie'],
         superadminCredentials: {
