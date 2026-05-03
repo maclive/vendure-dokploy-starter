@@ -24,6 +24,7 @@ export const config: VendureConfig = {
   cors: {
     origin: [
       'https://remix.bramjlive.com',
+      'https://shop.bramjlive.com',
       'http://localhost:3000',   // للتطوير المحلي
     ],
     credentials: true,
