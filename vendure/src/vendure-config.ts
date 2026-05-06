@@ -25,6 +25,8 @@ export const config: VendureConfig = {
     origin: [
       'https://remix.bramjlive.com',
       'https://shop.bramjlive.com',
+    'https://panda.bramjlive.com',
+
       'http://localhost:3000',   // للتطوير المحلي
     ],
     credentials: true,
