@@ -16,26 +16,28 @@ const IS_LOCAL = process.env.APP_ENV === 'local';
 const serverPort = +process.env.PORT || 3000;
 
 export const config: VendureConfig = {
-   apiOptions: {
-  port: serverPort,
-  adminApiPath: 'admin-api',
-  shopApiPath: 'shop-api',
-  trustProxy: IS_LOCAL ? false : 1,
-  cors: {
-    origin: [
-      'https://remix.bramjlive.com',
-      'https://shop.bramjlive.com',
-    'https://panda.bramjlive.com',
+    apiOptions: {
+        port: serverPort,
+        adminApiPath: 'admin-api',
+        shopApiPath: 'shop-api',
+        trustProxy: IS_LOCAL ? false : 1,
+        cors: {
+            origin: [
+                'https://remix.bramjlive.com',
+                'https://shop.bramjlive.com',
+                'https://panda.bramjlive.com',
+                'http://localhost:3000',
+            ],
+            credentials: true,
+        },
+        ...(IS_LOCAL
+            ? {
+                  adminApiDebug: true,
+                  shopApiDebug: true,
+              }
+            : {}),
+    },
 
-      'http://localhost:3000',   // للتطوير المحلي
-    ],
-    credentials: true,
-  },
-  ...(IS_LOCAL ? {
-    adminApiDebug: true,
-    shopApiDebug: true,
-  } : {}),
-},
     authOptions: {
         tokenMethod: ['bearer', 'cookie'],
         superadminCredentials: {
@@ -43,18 +45,16 @@ export const config: VendureConfig = {
             password: process.env.SUPERADMIN_PASSWORD,
         },
         cookieOptions: {
-          secret: process.env.COOKIE_SECRET,
-            // 👇 أهم حاجة
-        domain: '.bramjlive.com',
-        httpOnly: true,
-        secure: true,        // لازم عشان https
-        sameSite: 'none',    // مهم بين subdomains
+            secret: process.env.COOKIE_SECRET,
+            domain: '.bramjlive.com',
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
         },
     },
+
     dbConnectionOptions: {
         type: 'postgres',
-        // See the README.md "Migrations" section for an explanation of
-        // the `synchronize` and `migrations` options.
         synchronize: true,
         migrations: [path.join(__dirname, './migrations/*.+(js|ts)')],
         logging: false,
@@ -65,65 +65,66 @@ export const config: VendureConfig = {
         username: process.env.DB_USERNAME,
         password: process.env.DB_PASSWORD,
     },
+
     paymentOptions: {
         paymentMethodHandlers: [dummyPaymentHandler],
     },
-    // When adding or altering custom field definitions, the database will
-    // need to be updated. See the "Migrations" section in README.md.
+
     customFields: {},
+
     plugins: [
         BullMQJobQueuePlugin.init({
             connection: {
-              port: 6379,
-              host: process.env.REDIS_HOST,
-              password: process.env.REDIS_PASSWORD,
-              maxRetriesPerRequest: null
+                port: 6379,
+                host: process.env.REDIS_HOST,
+                password: process.env.REDIS_PASSWORD,
+                maxRetriesPerRequest: null,
             },
-          }),
+        }),
+
         GraphiqlPlugin.init(),
+
         AssetServerPlugin.init({
             route: 'assets',
-            assetUploadDir: IS_LOCAL ? path.join(__dirname, '../static/assets') : '/usr/src/app/assets',
-            // For local dev, the correct value for assetUrlPrefix should
-            // be guessed correctly, but for production it will usually need
-            // to be set manually to match your production url.
+            assetUploadDir: IS_LOCAL
+                ? path.join(__dirname, '../static/assets')
+                : '/usr/src/app/assets',
             assetUrlPrefix: `https://${process.env.VENDURE_HOST}/assets/`,
         }),
+
         DefaultSchedulerPlugin.init(),
-        DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
-        ```ts
-EmailPlugin.init({
-    handlers: defaultEmailHandlers,
 
-    templateLoader: new FileBasedTemplateLoader(
-        path.join(__dirname, '../static/email/templates')
-    ),
+        DefaultSearchPlugin.init({
+            bufferUpdates: false,
+            indexStockStatus: true,
+        }),
 
-    transport: {
-        type: 'smtp',
+        EmailPlugin.init({
+            handlers: defaultEmailHandlers,
 
-        host: 'smtp-relay.brevo.com',
-        port: 587,
+            templateLoader: new FileBasedTemplateLoader(
+                path.join(__dirname, '../static/email/templates')
+            ),
 
-        auth: {
-            user: process.env.BREVO_SMTP_LOGIN,
-            pass: process.env.BREVO_SMTP_KEY,
-        },
-    },
+            transport: {
+                type: 'smtp',
+                host: 'smtp-relay.brevo.com',
+                port: 587,
+                auth: {
+                    user: process.env.BREVO_SMTP_LOGIN,
+                    pass: process.env.BREVO_SMTP_KEY,
+                },
+            },
 
-    globalTemplateVars: {
-        fromAddress: '"BramjLive" <sales@shop.bramjlive.com>',
+            globalTemplateVars: {
+                fromAddress: '"BramjLive" <sales@shop.bramjlive.com>',
+                verifyEmailAddressUrl: 'https://shop.bramjlive.com/verify',
+                passwordResetUrl: 'https://shop.bramjlive.com/password-reset',
+                changeEmailAddressUrl:
+                    'https://shop.bramjlive.com/verify-email-address-change',
+            },
+        }),
 
-        verifyEmailAddressUrl: 'https://shop.bramjlive.com/verify',
-
-        passwordResetUrl: 'https://shop.bramjlive.com/password-reset',
-
-        changeEmailAddressUrl: 'https://shop.bramjlive.com/verify-email-address-change',
-    },
-}),
-```
-
-        
         DashboardPlugin.init({
             route: 'dashboard',
             appDir: path.join(__dirname, '../dist/dashboard'),
