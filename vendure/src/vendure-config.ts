@@ -91,21 +91,39 @@ export const config: VendureConfig = {
         }),
         DefaultSchedulerPlugin.init(),
         DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
-        EmailPlugin.init({
-            devMode: true,
-            outputPath: path.join(__dirname, '../static/email/test-emails'),
-            route: 'mailbox',
-            handlers: defaultEmailHandlers,
-            templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
-            globalTemplateVars: {
-                // The following variables will change depending on your storefront implehmentation.
-                // Here we are assuming a storefront running at http://localhost:8080.
-                fromAddress: '"example" <noreply@example.com>',
-                verifyEmailAddressUrl: 'http://localhost:8080/verify',
-                passwordResetUrl: 'http://localhost:8080/password-reset',
-                changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change'
-            },
-        }),
+        ```ts
+EmailPlugin.init({
+    handlers: defaultEmailHandlers,
+
+    templateLoader: new FileBasedTemplateLoader(
+        path.join(__dirname, '../static/email/templates')
+    ),
+
+    transport: {
+        type: 'smtp',
+
+        host: 'smtp-relay.brevo.com',
+        port: 587,
+
+        auth: {
+            user: process.env.BREVO_SMTP_LOGIN,
+            pass: process.env.BREVO_SMTP_KEY,
+        },
+    },
+
+    globalTemplateVars: {
+        fromAddress: '"BramjLive" <sales@shop.bramjlive.com>',
+
+        verifyEmailAddressUrl: 'https://shop.bramjlive.com/verify',
+
+        passwordResetUrl: 'https://shop.bramjlive.com/password-reset',
+
+        changeEmailAddressUrl: 'https://shop.bramjlive.com/verify-email-address-change',
+    },
+}),
+```
+
+        
         DashboardPlugin.init({
             route: 'dashboard',
             appDir: path.join(__dirname, '../dist/dashboard'),
