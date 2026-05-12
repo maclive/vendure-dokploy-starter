@@ -117,11 +117,11 @@ export const config: VendureConfig = {
             },
 
             globalTemplateVars: {
-                fromAddress: '"BramjLive" <sales@shop.bramjlive.com>',
-                verifyEmailAddressUrl: 'https://shop.bramjlive.com/verify',
-                passwordResetUrl: 'https://shop.bramjlive.com/password-reset',
+                fromAddress: '"BramjLive" <sales@panda.bramjlive.com>',
+                verifyEmailAddressUrl: 'https://panda.bramjlive.com/verify',
+                passwordResetUrl: 'https://panda.bramjlive.com/password-reset',
                 changeEmailAddressUrl:
-                    'https://shop.bramjlive.com/verify-email-address-change',
+                    'https://panda.bramjlive.com/verify-email-address-change',
             },
         }),
 
