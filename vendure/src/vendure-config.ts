@@ -23,8 +23,7 @@ export const config: VendureConfig = {
         trustProxy: IS_LOCAL ? false : 1,
         cors: {
             origin: [
-                'https://remix.bramjlive.com',
-                'https://shop.bramjlive.com',
+                'https://dash.souqedku.com',
                 'https://panda.bramjlive.com',
                 'http://localhost:3000',
             ],
