@@ -23,7 +23,7 @@ export const config: VendureConfig = {
         trustProxy: IS_LOCAL ? false : 1,
         cors: {
             origin: [
-                'https://dash.souqedku.com',
+                'https://souqedku.com',
                 'https://panda.bramjlive.com',
                 'http://localhost:3000',
             ],
@@ -45,7 +45,7 @@ export const config: VendureConfig = {
         },
         cookieOptions: {
             secret: process.env.COOKIE_SECRET,
-            domain: '.bramjlive.com',
+            domain: '.souqedku.com',
             httpOnly: true,
             secure: true,
             sameSite: 'none',
@@ -116,7 +116,7 @@ export const config: VendureConfig = {
             },
 
             globalTemplateVars: {
-                fromAddress: '"BramjLive" <sales@panda.bramjlive.com>',
+                fromAddress: '"Souqedku" <sales@panda.bramjlive.com>',
                 verifyEmailAddressUrl: 'https://panda.bramjlive.com/verify',
                 passwordResetUrl: 'https://panda.bramjlive.com/password-reset',
                 changeEmailAddressUrl:
