@@ -24,7 +24,6 @@ export const config: VendureConfig = {
         cors: {
             origin: [
                 'https://souqedku.com',
-                'https://panda.bramjlive.com',
                 'http://localhost:3000',
             ],
             credentials: true,
